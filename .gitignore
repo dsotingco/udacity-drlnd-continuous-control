@@ -1,0 +1,6 @@
+.vscode/
+
+src/Reacher.exe
+src/Reacher_Data/
+src/UnityPlayer.dll
+src/unity-environment.log
