@@ -5,9 +5,9 @@ Train the Reacher agent.
 from unityagents import UnityEnvironment
 import numpy as np
 import reacher_utils
-import Policy
+import ReacherPolicy
 
 env = UnityEnvironment(file_name="Reacher.exe")
-policy = Policy.Policy()
+policy = ReacherPolicy.ReacherPolicy()
 
 reacher_utils.collect_trajectories(env, policy)

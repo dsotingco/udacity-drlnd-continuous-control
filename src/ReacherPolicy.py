@@ -5,11 +5,11 @@ from torch.distributions import Categorical
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-class Policy(nn.Module):
+class ReacherPolicy(nn.Module):
     """ Policy model. """
 
     def __init__(self, state_size=33, hidden1_size=128, hidden2_size=64, action_size=4):
-        super(Policy, self).__init__()
+        super(ReacherPolicy, self).__init__()
         self.state_size = state_size
         self.action_size = action_size
         self.batchnorm = nn.BatchNorm1d(num_features=state_size)
