@@ -19,15 +19,13 @@ class ReacherPolicy(nn.Module):
 
     def forward(self, state):
         x = self.batchnorm(state)
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
-        x = self.relu(self.fc3(x))
-        out = F.tanh(x)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        out = torch.tanh(x)
         return out
 
     def act(self, state):
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-        probs = self.forward(state).cpu()
-        m = Categorical(probs)
-        action = m.sample()
-        return action.item(), m.log_prob(action)
+        self.eval()
+        return self.forward(state).cpu()
