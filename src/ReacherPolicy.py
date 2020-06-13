@@ -28,8 +28,8 @@ class ReacherPolicy(nn.Module):
         return out
 
     def act(self, state, use_sampling=True):
-        actions = np.array([0] * self.action_size)
-        log_probs = np.array([0] * self.action_size)
+        actions = torch.tensor([0] * self.action_size)
+        log_probs = torch.tensor([0] * self.action_size)
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
         self.eval()
         distribution_params = self.forward(state).cpu()
@@ -41,8 +41,8 @@ class ReacherPolicy(nn.Module):
         std_deviation_matrix = torch.Tensor(np.diagflat(std_deviations))
         m = MultivariateNormal(mean_matrix, std_deviation_matrix)
         if use_sampling:
-            actions = m.sample().detach().numpy()
+            actions = m.sample()
         else:
             actions = means
-        # log_probs = m.log_prob(actions).detach().numpy()
+        log_probs = m.log_prob(actions)
         return (actions, log_probs)

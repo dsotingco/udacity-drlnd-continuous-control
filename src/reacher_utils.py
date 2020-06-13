@@ -28,7 +28,7 @@ def collect_trajectories(env, policy_list):
             agent_policy = policy_list[agent_index]
             agent_states = states[agent_index,:]
             (policy_actions, policy_log_probs) = agent_policy.act(agent_states)
-            actions[agent_index,:] = policy_actions
+            actions[agent_index,:] = policy_actions.detach().numpy()
         env_info = env.step(actions)[brain_name]
         next_states = env_info.vector_observations
         rewards = env_info.rewards
