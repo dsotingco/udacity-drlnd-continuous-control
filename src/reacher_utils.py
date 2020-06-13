@@ -27,9 +27,8 @@ def collect_trajectories(env, policy_list):
         for agent_index in range(num_agents):
             agent_policy = policy_list[agent_index]
             agent_states = states[agent_index,:]
-            policy_actions = agent_policy.act(agent_states)
-            actions[agent_index,:] = policy_actions.detach().numpy()
-        policy_actions = policy_list[0].act(states[0,:])
+            (policy_actions, policy_log_probs) = agent_policy.act(agent_states)
+            actions[agent_index,:] = policy_actions
         env_info = env.step(actions)[brain_name]
         next_states = env_info.vector_observations
         rewards = env_info.rewards
@@ -41,7 +40,7 @@ def collect_trajectories(env, policy_list):
 
     average_agent_score = np.mean(scores)
     print('Total score (averaged over agents) this episode: {}'.format(average_agent_score))
-    print(actions)
+    # print(actions)
 
     env.close()
 
