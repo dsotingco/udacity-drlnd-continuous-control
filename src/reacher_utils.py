@@ -4,6 +4,12 @@ from unityagents import UnityEnvironment
 import numpy as np
 
 def collect_trajectories(env, policy_list):
+    # initialize return variables
+    prob_list = []
+    state_list = []
+    action_list = []
+    reward_list = []
+
     # get the default brain
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
@@ -17,8 +23,9 @@ def collect_trajectories(env, policy_list):
     states = env_info.vector_observations
     scores = np.zeros(num_agents)
 
-    # initialize actions matrix
+    # initialize actions matrix and probability matrix
     actions = np.zeros((num_agents, action_size))
+    probs = np.zeros((num_agents, action_size))
 
     # run the agents in the environment
     while True:
@@ -29,11 +36,18 @@ def collect_trajectories(env, policy_list):
             agent_states = states[agent_index,:]
             (policy_actions, policy_log_probs) = agent_policy.act(agent_states)
             actions[agent_index,:] = policy_actions.detach().numpy()
+            probs[agent_index,:] = policy_log_probs.detach().numpy()
         env_info = env.step(actions)[brain_name]
         next_states = env_info.vector_observations
         rewards = env_info.rewards
         dones = env_info.local_done
         scores += env_info.rewards
+        # Append results to output lists.
+        prob_list.append(probs)
+        state_list.append(states)
+        action_list.append(actions)
+        reward_list.append(rewards)
+        # Set up for next step
         states = next_states
         if np.any(dones):
             break
@@ -44,4 +58,4 @@ def collect_trajectories(env, policy_list):
 
     env.close()
 
-    # TODO: return old_probs, states, actions, rewards
+    return prob_list, state_list, action_list, reward_list
