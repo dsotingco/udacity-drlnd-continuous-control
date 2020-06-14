@@ -39,10 +39,14 @@ def collect_trajectories(env, policy_list):
             probs[agent_index,:] = policy_log_probs.detach().numpy()
         env_info = env.step(actions)[brain_name]
         next_states = env_info.vector_observations
-        rewards = env_info.rewards
+        rewards = np.array(env_info.rewards)
         dones = env_info.local_done
         scores += env_info.rewards
         # Append results to output lists.
+        assert isinstance(probs, np.ndarray)
+        assert isinstance(states, np.ndarray)
+        assert isinstance(actions, np.ndarray)
+        assert isinstance(rewards, np.ndarray)
         prob_list.append(probs)
         state_list.append(states)
         action_list.append(actions)
