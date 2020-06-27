@@ -9,7 +9,8 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class ReacherPolicy(nn.Module):
     """ Policy model. """
 
-    def __init__(self, state_size=33, hidden1_size=128, hidden2_size=64, action_size=4):
+    def __init__(self, state_size=33, hidden1_size=128, hidden2_size=64, action_size=4, 
+                 init_std_deviation=1.0):
         super(ReacherPolicy, self).__init__()
         self.state_size = state_size
         self.action_size = action_size
@@ -17,6 +18,8 @@ class ReacherPolicy(nn.Module):
         self.fc1 = nn.Linear(state_size, hidden1_size)
         self.fc2 = nn.Linear(hidden1_size, hidden2_size)
         self.fc3 = nn.Linear(hidden2_size, 2*action_size)
+        self.means = torch.tensor([0.0] * self.action_size)
+        self.std_deviations = torch.tensor([init_std_deviation] * self.action_size)
         # Output of neural network: [mu1; mu2; mu3; mu4; sigma1; sigma2; sigma3; sigma4]
 
     def calculate_distribution_params(self, state):
@@ -25,24 +28,18 @@ class ReacherPolicy(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         out = torch.tanh(x)
-        return out
+        self.means = out.flatten()[0:4]
+        self.std_deviations = out.flatten()[4:]
 
     def forward(self, state, use_sampling=True):
         actions = torch.tensor([0] * self.action_size)
         log_probs = torch.tensor([0] * self.action_size)
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
         self.eval()
-        distribution_params = self.calculate_distribution_params(state).cpu()
-        means = distribution_params.flatten()[0:4].detach().numpy()
-        min_std_deviations = [0.1, 0.1, 0.1, 0.1]    # to avoid PyTorch numerical errors
-        nn_std_deviations = distribution_params.flatten()[4:].detach().numpy()
-        std_deviations = np.maximum(min_std_deviations, nn_std_deviations)
-        mean_matrix = torch.Tensor(means)
-        std_deviation_matrix = torch.Tensor(np.diagflat(std_deviations))
-        m = MultivariateNormal(mean_matrix, std_deviation_matrix)
+        m = torch.distributions.normal.Normal(self.means, self.std_deviations)
         if use_sampling:
             actions = m.sample()
         else:
-            actions = means
+            actions = self.means
         log_probs = m.log_prob(actions)
         return (actions, log_probs)
