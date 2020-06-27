@@ -22,6 +22,7 @@ class ReacherPolicy(nn.Module):
         self.std_deviations = torch.tensor([init_std_deviation] * self.action_size)
 
     def calculate_distribution_params(self, state):
+        """ Calculate means and standard deviations to be used. """
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
@@ -30,6 +31,7 @@ class ReacherPolicy(nn.Module):
         self.std_deviations = out.flatten()[4:]
 
     def forward(self, state, use_sampling=True):
+        """ Run the neural network and sample the distribution for actions. """
         actions = torch.tensor([0] * self.action_size)
         log_probs = torch.tensor([0] * self.action_size)
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
@@ -44,6 +46,9 @@ class ReacherPolicy(nn.Module):
         return (actions, log_probs)
 
     def calculate_log_probs_from_actions(self, state, actions):
+        """ Calculate log probabilities from state and actions.  
+            To be used for calculating new probabilities as the 
+            policy changes during training. """
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
         self.eval()
         self.calculate_distribution_params(state)

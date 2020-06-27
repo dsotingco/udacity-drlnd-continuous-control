@@ -79,10 +79,15 @@ def process_rewards(rewards, discount=0.995):
 
     return normalized_rewards
 
-def clipped_surrogate(policy, old_probs, states, actions, rewards,
+def calculate_new_log_probs(policy, state_list, action_list):
+    """ Calculate new log probabilities of the actions, 
+        given the states.  To be used during training as the
+        policy is changed by the optimizer. """
+    new_prob_list = [policy.calculate_log_probs_from_actions(s, a) for s, a in zip(state_list, action_list)]
+    return new_prob_list
+
+def clipped_surrogate(policy, old_prob_list, state_list, action_list, reward_list,
                       discount=0.995,
                       epsilon=0.1,
                       beta=0.01):
-    pass
-    # discount_array = discount **np.arange(len(rewards))
-    # rewards = 
+    normalized_rewards = process_rewards(reward_list, discount)
