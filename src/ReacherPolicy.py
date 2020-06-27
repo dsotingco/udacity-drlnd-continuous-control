@@ -20,7 +20,6 @@ class ReacherPolicy(nn.Module):
         # Output of neural network: [mu1; mu2; mu3; mu4; sigma1; sigma2; sigma3; sigma4]
         self.means = torch.tensor([0.0] * self.action_size)
         self.std_deviations = torch.tensor([init_std_deviation] * self.action_size)
-        
 
     def calculate_distribution_params(self, state):
         x = F.relu(self.fc1(state))
@@ -35,6 +34,7 @@ class ReacherPolicy(nn.Module):
         log_probs = torch.tensor([0] * self.action_size)
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
         self.eval()
+        self.calculate_distribution_params(state)
         m = torch.distributions.normal.Normal(self.means, self.std_deviations)
         if use_sampling:
             actions = m.sample()
@@ -42,3 +42,11 @@ class ReacherPolicy(nn.Module):
             actions = self.means
         log_probs = m.log_prob(actions)
         return (actions, log_probs)
+
+    def calculate_log_probs_from_actions(self, state, actions):
+        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+        self.eval()
+        self.calculate_distribution_params(state)
+        m = torch.distributions.normal.Normal(self.means, self.std_deviations)
+        log_probs = m.log_prob(actions)
+        return log_probs
