@@ -64,6 +64,21 @@ def collect_trajectories(env, policy_list):
 
     return prob_list, state_list, action_list, reward_list
 
+def process_rewards(rewards, discount=0.995):
+    # calculate discounted rewards
+    discount_array = discount**np.arange(len(rewards))
+    discounted_rewards = np.asarray(rewards) * discount_array[:,np.newaxis]
+
+    # calculate future discounted rewards
+    future_rewards = discounted_rewards[::-1].cumsum(axis=0)[::-1]
+
+    # normalize the future discounted rewards
+    mean = np.mean(future_rewards, axis=1)
+    std = np.std(future_rewards, axis=1) + 1.0e-10
+    normalized_rewards = (future_rewards - mean[:,np.newaxis])/std[:,np.newaxis]
+
+    return normalized_rewards
+
 def clipped_surrogate(policy, old_probs, states, actions, rewards,
                       discount=0.995,
                       epsilon=0.1,
