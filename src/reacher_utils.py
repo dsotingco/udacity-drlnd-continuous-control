@@ -91,3 +91,5 @@ def clipped_surrogate(policy, old_prob_list, state_list, action_list, reward_lis
                       epsilon=0.1,
                       beta=0.01):
     normalized_rewards = process_rewards(reward_list, discount)
+    new_prob_list = calculate_new_log_probs(policy, state_list, action_list)
+    # TODO: calculate probability ratio; clipped function; regularization/entropy term
