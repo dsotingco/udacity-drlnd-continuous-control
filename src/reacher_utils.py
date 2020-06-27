@@ -34,7 +34,7 @@ def collect_trajectories(env, policy_list):
         for agent_index in range(num_agents):
             agent_policy = policy_list[agent_index]
             agent_states = states[agent_index,:]
-            (policy_actions, policy_log_probs) = agent_policy.act(agent_states)
+            (policy_actions, policy_log_probs) = agent_policy.forward(agent_states)
             actions[agent_index,:] = policy_actions.detach().numpy()
             probs[agent_index,:] = policy_log_probs.detach().numpy()
         env_info = env.step(actions)[brain_name]
@@ -63,3 +63,11 @@ def collect_trajectories(env, policy_list):
     env.close()
 
     return prob_list, state_list, action_list, reward_list
+
+def clipped_surrogate(policy, old_probs, states, actions, rewards,
+                      discount=0.995,
+                      epsilon=0.1,
+                      beta=0.01):
+    pass
+    # discount_array = discount **np.arange(len(rewards))
+    # rewards = 
