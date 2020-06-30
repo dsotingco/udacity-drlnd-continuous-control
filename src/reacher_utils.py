@@ -2,6 +2,7 @@
 
 from unityagents import UnityEnvironment
 import numpy as np
+import torch
 
 def collect_trajectories(env, policy_list):
     # initialize return variables
@@ -55,6 +56,8 @@ def collect_trajectories(env, policy_list):
         states = next_states
         if np.any(dones):
             break
+        # TODO: probably want to stack these so that I'm not looping over
+        # 20 agents all the time downstream.  Maybe do in a separate function.
 
     average_agent_score = np.mean(scores)
     print('Total score (averaged over agents) this episode: {}'.format(average_agent_score))
@@ -64,19 +67,31 @@ def collect_trajectories(env, policy_list):
 
     return prob_list, state_list, action_list, reward_list
 
-def process_rewards(rewards, discount=0.995):
+# TODO: look at everything below to see if it would be better
+# processed as tensors.  Rewards still need to be processed by episode
+# in order to properly calculate future rewards (but after that it could
+# be turned into a tensor.)
+def process_rewards(reward_list, discount=0.995):
+    """ Process the rewards for one run of collect_trajectories().  
+    Outputs normalized, discounted, future rewards as a matrix of 
+    num_agents rows, and num_timesteps columns."""
     # calculate discounted rewards
-    discount_array = discount**np.arange(len(rewards))
-    discounted_rewards = np.asarray(rewards) * discount_array[:,np.newaxis]
+    num_timesteps = len(reward_list)
+    num_agents = len(reward_list[0])
+    reward_matrix = np.asarray(reward_list).T    # rows are agents; columns are time
+    discount_array = discount**np.arange(len(reward_list))
+    discount_matrix = np.tile(discount_array, (num_agents, 1))
+    discounted_rewards = reward_matrix * discount_matrix
 
     # calculate future discounted rewards
-    future_rewards = discounted_rewards[::-1].cumsum(axis=0)[::-1]
+    future_rewards = np.fliplr( np.fliplr(discounted_rewards).cumsum(axis=1) )
 
     # normalize the future discounted rewards
     mean = np.mean(future_rewards, axis=1)
     std = np.std(future_rewards, axis=1) + 1.0e-10
-    normalized_rewards = (future_rewards - mean[:,np.newaxis])/std[:,np.newaxis]
-
+    mean_matrix = np.tile(mean[np.newaxis].T, (1,num_timesteps))
+    std_matrix  = np.tile(std[np.newaxis].T, (1,num_timesteps))
+    normalized_rewards = (future_rewards - mean_matrix) / std_matrix
     return normalized_rewards
 
 def calculate_new_log_probs(policy, state_list, action_list):

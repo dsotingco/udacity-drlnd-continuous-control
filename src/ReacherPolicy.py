@@ -49,6 +49,8 @@ class ReacherPolicy(nn.Module):
         """ Calculate log probabilities from state and actions.  
             To be used for calculating new probabilities as the 
             policy changes during training. """
+        # NOTE: These are technically not log probabilities, but rather
+        # logs of the probability density functions. 
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
         self.eval()
         self.calculate_distribution_params(state)
