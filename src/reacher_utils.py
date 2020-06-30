@@ -95,12 +95,17 @@ def process_rewards(reward_list, discount=0.995):
     stacked_normalized_rewards = np.reshape(normalized_rewards, -1)
     return stacked_normalized_rewards
 
-def calculate_new_log_probs(policy, state_list, action_list):
+def calculate_new_log_probs(policy, state_nparray, action_nparray):
     """ Calculate new log probabilities of the actions, 
         given the states.  To be used during training as the
         policy is changed by the optimizer. """
-    new_prob_list = [policy.calculate_log_probs_from_actions(s, a) for s, a in zip(state_list, action_list)]
-    return new_prob_list
+    new_prob_nparray = np.zeros(action_nparray.shape)
+    row_index = 0
+    for s,a in zip(state_nparray, action_nparray):
+        new_prob_nparray[row_index,:] = policy.calculate_log_probs_from_actions(s,a).detach().numpy()
+        row_index = row_index + 1
+    # new_prob_list = [policy.calculate_log_probs_from_actions(s, a) for s, a in zip(state_list, action_list)]
+    return new_prob_nparray
 
 def clipped_surrogate(policy, old_prob_list, state_list, action_list, reward_list,
                       discount=0.995,

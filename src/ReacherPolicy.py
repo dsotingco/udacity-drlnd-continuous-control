@@ -52,6 +52,7 @@ class ReacherPolicy(nn.Module):
         # NOTE: These are technically not log probabilities, but rather
         # logs of the probability density functions. 
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+        actions = torch.from_numpy(actions).float().unsqueeze(0).to(device)
         self.eval()
         self.calculate_distribution_params(state)
         m = torch.distributions.normal.Normal(self.means, self.std_deviations)
