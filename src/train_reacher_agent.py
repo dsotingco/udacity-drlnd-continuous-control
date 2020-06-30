@@ -22,14 +22,12 @@ print(reward_list[0].shape)
 
 # Concatenate the trajectories (the agents are all the same, so just
 # build up tensors for training)
-prob_tensor = torch.cat([torch.tensor(prob_array) for prob_array in prob_list])            # N x 4
-state_tensor = torch.cat([torch.tensor(state_array) for state_array in state_list])        # N x 33
-action_tensor = torch.cat([torch.tensor(action_array) for action_array in action_list])    # N x 4
+old_prob_nparray = np.concatenate(prob_list, axis=0)
+state_nparray = np.concatenate(state_list, axis=0)
+action_nparray = np.concatenate(action_list, axis=0)
+reward_nparray = reacher_utils.process_rewards(reward_list)
 
-reward_array = reacher_utils.process_rewards(reward_list)
-reward_tensor = torch.tensor(np.reshape(reward_array, -1))
-
-print(prob_tensor.shape)
-print(state_tensor.shape)
-print(action_tensor.shape)
-print(reward_tensor.shape)
+print(old_prob_nparray.shape)
+print(state_nparray.shape)
+print(action_nparray.shape)
+print(reward_nparray.shape)
