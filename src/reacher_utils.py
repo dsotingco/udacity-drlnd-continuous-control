@@ -58,11 +58,8 @@ def collect_trajectories(env, policy):
 
     average_agent_score = np.mean(scores)
     print('Total score (averaged over agents) this episode: {}'.format(average_agent_score))
-    # print(actions)
 
-    env.close()
-
-    return prob_list, state_list, action_list, reward_list
+    return prob_list, state_list, action_list, reward_list, average_agent_score
 
 def process_rewards(reward_list, discount=0.995):
     """ Process the rewards for one run of collect_trajectories().  
