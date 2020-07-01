@@ -122,9 +122,10 @@ def clipped_surrogate(policy, old_prob_batch, state_batch, action_batch, reward_
                       beta=0.01):
     """ Calculate the PPO clipped surrogate function.  Inputs should be batches of
     training data, as PyTorch tensors. """
-    new_prob_nparray = calculate_new_log_probs(policy, state_batch, action_batch)
-    # May want to use Torch tensors from this point forward.
+    new_prob_batch = calculate_new_log_probs(policy, state_batch, action_batch)
     prob_ratio = calculate_probability_ratio(old_prob_batch, new_prob_batch)
-    # normalized_rewards = process_rewards(reward_list, discount)
-    # new_prob_list = calculate_new_log_probs(policy, state_list, action_list)
-    # TODO: calculate probability ratio; clipped function; regularization/entropy term
+    clipped_prob_ratio = torch.clamp(prob_ratio, 1-epsilon, 1+epsilon)
+    raw_loss = prob_ratio * reward_batch
+    clipped_loss = clipped_prob_ratio * reward_batch
+    ppo_loss = torch.min(raw_loss, clipped_loss)
+    # TODO: regularization/entropy term
