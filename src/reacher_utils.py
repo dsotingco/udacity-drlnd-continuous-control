@@ -110,19 +110,25 @@ def calculate_probability_ratio(old_prob_batch, new_prob_batch):
     prob_ratio = torch.sum(torch.exp(new_prob_batch), axis=1) / torch.sum(torch.exp(old_prob_batch), axis=1)
     return prob_ratio
 
-def clipped_surrogate(policy, old_prob_batch, state_batch, action_batch, reward_batch,
+def clipped_surrogate(old_prob_batch, new_prob_batch, reward_batch,
                       discount=0.995,
                       epsilon=0.1,
                       beta=0.01):
     """ Calculate the PPO clipped surrogate function.  Inputs should be batches of
     training data, as PyTorch tensors. """
-    new_prob_batch = calculate_new_log_probs(policy, state_batch, action_batch)
     prob_ratio = calculate_probability_ratio(old_prob_batch, new_prob_batch)
     clipped_prob_ratio = torch.clamp(prob_ratio, 1-epsilon, 1+epsilon)
     raw_loss = prob_ratio * reward_batch
     clipped_loss = clipped_prob_ratio * reward_batch
     ppo_loss = torch.min(raw_loss, clipped_loss)
     return ppo_loss
+
+def calculate_entropy(old_prob_batch, new_prob_batch):
+    old_prob_batch = torch.sum(torch.exp(old_prob_batch), axis=1)
+    new_prob_batch = torch.sum(torch.exp(new_prob_batch), axis=1)
+    entropy = -torch.exp(new_prob_batch) * (old_prob_batch + 1e-10) + \
+              (1.0 - torch.exp(new_prob_batch)) * (1 - old_prob_batch + 1e-10)
+    return entropy
 
 def run_training_epoch(policy, optimizer, old_prob_list, state_list, action_list, reward_list,
                        discount=0.995,
@@ -149,10 +155,13 @@ def run_training_epoch(policy, optimizer, old_prob_list, state_list, action_list
         state_batch = state_tensor[batch_sample_indices,:]
         action_batch = action_tensor[batch_sample_indices,:]
         reward_batch = reward_tensor[batch_sample_indices]
-        ppo_loss = clipped_surrogate(policy, old_prob_batch, state_batch, action_batch, reward_batch, 
+        new_prob_batch = calculate_new_log_probs(policy, state_batch, action_batch)
+    
+        ppo_loss = clipped_surrogate(old_prob_batch, new_prob_batch, reward_batch,
                                      discount=discount, epsilon=epsilon, beta=beta)
-        # TODO: maybe add regularization/entropy term
-        batch_loss = -torch.mean(ppo_loss)
+        entropy = calculate_entropy(old_prob_batch, new_prob_batch)
+        batch_loss = -torch.mean(ppo_loss + beta*entropy)
+
         optimizer.zero_grad()
         batch_loss.backward()
         optimizer.step()
