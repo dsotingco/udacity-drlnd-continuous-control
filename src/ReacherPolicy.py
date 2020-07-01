@@ -54,7 +54,7 @@ class ReacherPolicy(nn.Module):
         # state = torch.from_numpy(state).float().unsqueeze(0).to(device)
         # actions = torch.from_numpy(actions).float().unsqueeze(0).to(device)
         self.eval()
-        self.double()    # need this to avoid PyTorch errors for some reason
+        # self.double()    # need this to avoid PyTorch errors for some reason
         self.calculate_distribution_params(state)
         m = torch.distributions.normal.Normal(self.means, self.std_deviations)
         log_probs = m.log_prob(actions)

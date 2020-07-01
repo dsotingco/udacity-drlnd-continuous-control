@@ -21,12 +21,12 @@ def collect_trajectories(env, policy):
     num_agents = len(env_info.agents)
 
     # get initial states and scores for each agent
-    states = env_info.vector_observations
-    scores = np.zeros(num_agents)
+    states = env_info.vector_observations.astype(np.float32)
+    scores = np.zeros(num_agents, dtype=np.float32)
 
     # initialize actions matrix and probability matrix
-    actions = np.zeros((num_agents, action_size))
-    probs = np.zeros((num_agents, action_size))
+    actions = np.zeros((num_agents, action_size), dtype=np.float32)
+    probs = np.zeros((num_agents, action_size), dtype=np.float32)
 
     # run the agents in the environment
     while True:
@@ -38,7 +38,7 @@ def collect_trajectories(env, policy):
             actions[agent_index,:] = policy_actions.detach().numpy()
             probs[agent_index,:] = policy_log_probs.detach().numpy()
         env_info = env.step(actions)[brain_name]
-        next_states = env_info.vector_observations
+        next_states = env_info.vector_observations.astype(np.float32)
         rewards = np.array(env_info.rewards)
         dones = env_info.local_done
         scores += env_info.rewards

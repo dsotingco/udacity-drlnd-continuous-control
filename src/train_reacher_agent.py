@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # Hyperparameters
 learning_rate = 1e-4
-num_episodes = 1
+num_episodes = 2
 discount = 0.995
 epsilon = 0.1
 beta = 0.01
