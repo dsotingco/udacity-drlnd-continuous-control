@@ -67,10 +67,6 @@ def collect_trajectories(env, policy_list):
 
     return prob_list, state_list, action_list, reward_list
 
-# TODO: look at everything below to see if it would be better
-# processed as tensors.  Rewards still need to be processed by episode
-# in order to properly calculate future rewards (but after that it could
-# be turned into a tensor.)
 def process_rewards(reward_list, discount=0.995):
     """ Process the rewards for one run of collect_trajectories().  
     Outputs normalized, discounted, future rewards as a matrix of 
@@ -95,22 +91,40 @@ def process_rewards(reward_list, discount=0.995):
     stacked_normalized_rewards = np.reshape(normalized_rewards, -1)
     return stacked_normalized_rewards
 
-def calculate_new_log_probs(policy, state_nparray, action_nparray):
+def calculate_new_log_probs(policy, state_batch, action_batch):
     """ Calculate new log probabilities of the actions, 
         given the states.  To be used during training as the
-        policy is changed by the optimizer. """
-    new_prob_nparray = np.zeros(action_nparray.shape)
+        policy is changed by the optimizer. 
+        Inputs are state and action batches as PyTorch tensors."""
+    new_prob_batch = torch.zeros(action_batch.shape)
     row_index = 0
-    for s,a in zip(state_nparray, action_nparray):
-        new_prob_nparray[row_index,:] = policy.calculate_log_probs_from_actions(s,a).detach().numpy()
+    for s,a in zip(state_batch, action_batch):
+        new_prob_batch[row_index,:] = policy.calculate_log_probs_from_actions(s,a)
         row_index = row_index + 1
     # new_prob_list = [policy.calculate_log_probs_from_actions(s, a) for s, a in zip(state_list, action_list)]
-    return new_prob_nparray
+    return new_prob_batch
 
-def clipped_surrogate(policy, old_prob_list, state_list, action_list, reward_list,
+def calculate_probability_ratio(old_prob_batch, new_prob_batch):
+    """ Calculate the PPO probability ratio. The inputs old_prob_batch
+    and new_prob_batch are expected to be N x 4 PyTorch tensors, with N
+    being the number of samples in the batch."""
+    assert(old_prob_batch.shape == new_prob_batch.shape)
+    # Note: Need to collapse 4 probabilities (for 4 actions) into a scalar to 
+    # multiply by the scalar rewards.  Done here by just summing the probabilities.
+    # Note that they weren't really probabilities to begin with, but rather the
+    # log of the normal distributions' PDF values.
+    prob_ratio = torch.sum(torch.exp(new_prob_batch), axis=1) / torch.sum(torch.exp(old_prob_batch), axis=1)
+    return prob_ratio
+
+def clipped_surrogate(policy, old_prob_batch, state_batch, action_batch, reward_batch,
                       discount=0.995,
                       epsilon=0.1,
                       beta=0.01):
-    normalized_rewards = process_rewards(reward_list, discount)
-    new_prob_list = calculate_new_log_probs(policy, state_list, action_list)
+    """ Calculate the PPO clipped surrogate function.  Inputs should be batches of
+    training data, as PyTorch tensors. """
+    new_prob_nparray = calculate_new_log_probs(policy, state_batch, action_batch)
+    # May want to use Torch tensors from this point forward.
+    prob_ratio = calculate_probability_ratio(old_prob_batch, new_prob_batch)
+    # normalized_rewards = process_rewards(reward_list, discount)
+    # new_prob_list = calculate_new_log_probs(policy, state_list, action_list)
     # TODO: calculate probability ratio; clipped function; regularization/entropy term

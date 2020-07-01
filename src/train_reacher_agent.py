@@ -32,5 +32,5 @@ print(state_nparray.shape)
 print(action_nparray.shape)
 print(reward_nparray.shape)
 
-new_prob_nparray = reacher_utils.calculate_new_log_probs(policy_list[0], state_nparray, action_nparray)
-print(new_prob_nparray.shape)
+new_prob_batch = reacher_utils.calculate_new_log_probs(policy_list[0], torch.tensor(state_nparray), torch.tensor(action_nparray))
+print(new_prob_batch.shape)
