@@ -4,7 +4,7 @@ from unityagents import UnityEnvironment
 import numpy as np
 import torch
 
-def collect_trajectories(env, policy_list):
+def collect_trajectories(env, policy):
     # initialize return variables
     prob_list = []
     state_list = []
@@ -33,9 +33,8 @@ def collect_trajectories(env, policy_list):
         # actions = np.random.randn(num_agents, action_size)
         # actions = np.clip(actions, -1, 1)
         for agent_index in range(num_agents):
-            agent_policy = policy_list[agent_index]
             agent_states = states[agent_index,:]
-            (policy_actions, policy_log_probs) = agent_policy.forward(agent_states)
+            (policy_actions, policy_log_probs) = policy.forward(agent_states)
             actions[agent_index,:] = policy_actions.detach().numpy()
             probs[agent_index,:] = policy_log_probs.detach().numpy()
         env_info = env.step(actions)[brain_name]
@@ -56,8 +55,6 @@ def collect_trajectories(env, policy_list):
         states = next_states
         if np.any(dones):
             break
-        # TODO: probably want to stack these so that I'm not looping over
-        # 20 agents all the time downstream.  Maybe do in a separate function.
 
     average_agent_score = np.mean(scores)
     print('Total score (averaged over agents) this episode: {}'.format(average_agent_score))
@@ -128,4 +125,38 @@ def clipped_surrogate(policy, old_prob_batch, state_batch, action_batch, reward_
     raw_loss = prob_ratio * reward_batch
     clipped_loss = clipped_prob_ratio * reward_batch
     ppo_loss = torch.min(raw_loss, clipped_loss)
-    # TODO: regularization/entropy term
+    return ppo_loss
+
+def run_training_epoch(policy, optimizer, old_prob_list, state_list, action_list, reward_list,
+                       discount=0.995,
+                       epsilon=0.1,
+                       beta=0.01,
+                       batch_size=64):
+    """ Run 1 training epoch.  Takes in the output lists from 1 run of collect_trajectories()
+    for a single episode.  Breaks up the lists into batches and then runs the batches through 
+    training. """
+    num_samples = len(state_list)
+    num_batches = int(np.ceil(num_samples/batch_size))
+    sample_indices = np.arange(num_samples)
+
+    old_prob_tensor = torch.tensor(np.concatenate(prob_list, axis=0))           # N x 4
+    state_tensor = torch.tensor(np.concatenate(state_list, axis=0))             # N x 33
+    action_tensor = torch.tensor(np.concatenate(action_list, axis=0))           # N x 4
+    reward_tensor = torch.tensor(reacher_utils.process_rewards(reward_list))    # N (1D)
+
+    for batch_index in range(num_batches):
+        sample_start_index = batch_index * batch_size
+        sample_end_index = sample_start_index + batch_size
+        batch_sample_indices = sample_indices[sample_start_index : sample_end_index]
+        old_prob_batch = old_prob_tensor[batch_sample_indices,:]
+        state_batch = state_tensor[batch_sample_indices,:]
+        action_batch = action_tensor[batch_sample_indices,:]
+        reward_batch = reward_tensor[batch_sample_indices]
+        ppo_loss = clipped_surrogate(policy, old_prob_batch, state_batch, action_batch, reward_batch, 
+                                     discount=discount, epsilon=epsilon, beta=beta)
+        # TODO: maybe add regularization/entropy term
+        batch_loss = -torch.mean(ppo_loss)
+        optimizer.zero_grad()
+        batch_loss.backward()
+        optimizer.step()
+

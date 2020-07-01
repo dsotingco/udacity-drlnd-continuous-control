@@ -5,16 +5,27 @@ Train the Reacher agent.
 from unityagents import UnityEnvironment
 import numpy as np
 import torch
+import torch.optim as optim
 import reacher_utils
 import ReacherPolicy
+
+# Hyperparameters
+learning_rate = 1e-4
+num_episodes = 1
 
 # Environment setup
 env = UnityEnvironment(file_name="Reacher.exe")
 num_agents = 20
-policy_list = [ReacherPolicy.ReacherPolicy() for agent in range(num_agents)]
+policy = ReacherPolicy.ReacherPolicy()
+optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
+
+# Initialize scores, etc.
+episode_scores = []
 
 # Collect trajectories
-(prob_list, state_list, action_list, reward_list) = reacher_utils.collect_trajectories(env, policy_list)
+for episode in range(num_episodes):
+    (prob_list, state_list, action_list, reward_list) = reacher_utils.collect_trajectories(env, policy)
+
 print(prob_list[0].shape)
 print(state_list[0].shape)
 print(action_list[0].shape)
@@ -32,5 +43,5 @@ print(state_nparray.shape)
 print(action_nparray.shape)
 print(reward_nparray.shape)
 
-new_prob_batch = reacher_utils.calculate_new_log_probs(policy_list[0], torch.tensor(state_nparray), torch.tensor(action_nparray))
+new_prob_batch = reacher_utils.calculate_new_log_probs(policy, torch.tensor(state_nparray), torch.tensor(action_nparray))
 print(new_prob_batch.shape)
