@@ -139,10 +139,10 @@ def run_training_epoch(policy, optimizer, old_prob_list, state_list, action_list
     num_batches = int(np.ceil(num_samples/batch_size))
     sample_indices = np.arange(num_samples)
 
-    old_prob_tensor = torch.tensor(np.concatenate(prob_list, axis=0))           # N x 4
-    state_tensor = torch.tensor(np.concatenate(state_list, axis=0))             # N x 33
-    action_tensor = torch.tensor(np.concatenate(action_list, axis=0))           # N x 4
-    reward_tensor = torch.tensor(reacher_utils.process_rewards(reward_list))    # N (1D)
+    old_prob_tensor = torch.tensor(np.concatenate(old_prob_list, axis=0))    # N x 4
+    state_tensor = torch.tensor(np.concatenate(state_list, axis=0))          # N x 33
+    action_tensor = torch.tensor(np.concatenate(action_list, axis=0))        # N x 4
+    reward_tensor = torch.tensor(process_rewards(reward_list))               # N (1D)
 
     for batch_index in range(num_batches):
         sample_start_index = batch_index * batch_size
