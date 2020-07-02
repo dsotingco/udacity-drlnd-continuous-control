@@ -33,7 +33,10 @@ score_threshold = 40
 
 # Run episodes and train agent.
 for episode in range(num_episodes):
+    # Collect trajectories
     (prob_list, state_list, action_list, reward_list, average_agent_score) = reacher_utils.collect_trajectories(env, policy)
+
+    # Process scores
     episode_scores.append(average_agent_score)
     scores_window.append(average_agent_score)
     if episode % 10 == 0:
@@ -42,6 +45,8 @@ for episode in range(num_episodes):
         print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(episode-100, np.mean(scores_window)))
         torch.save(policy.state_dict(), 'checkpoint.pth')
         break
+
+    # Run training epochs
     for epoch in range(num_epochs_per_episode):
         reacher_utils.run_training_epoch(policy, optimizer, prob_list, state_list, action_list, reward_list,
                                         discount=discount, epsilon=epsilon, beta=beta, batch_size=batch_size)
