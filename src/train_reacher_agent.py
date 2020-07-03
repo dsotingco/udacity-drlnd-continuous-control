@@ -12,13 +12,13 @@ import matplotlib.pyplot as plt
 from collections import deque
 
 # Hyperparameters
-learning_rate = 1e-4
-num_episodes = 3
+learning_rate = 2e-4
+num_episodes = 50
 discount = 0.995
 epsilon = 0.1
 beta = 0.01
-batch_size = 64
-num_epochs_per_episode = 2    # could probably go up to 15 with batch_size = 64
+batch_size = 128
+num_epochs_per_episode = 5    # could probably go up to 15 with batch_size = 64
 
 # Environment setup
 env = UnityEnvironment(file_name="Reacher.exe")
@@ -29,7 +29,7 @@ optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
 # Initialize scores, etc.
 episode_scores = []
 scores_window = deque(maxlen=100)
-score_threshold = 40
+score_threshold = 35
 
 # Run episodes and train agent.
 for episode in range(num_episodes):
@@ -50,7 +50,13 @@ for episode in range(num_episodes):
     for epoch in range(num_epochs_per_episode):
         reacher_utils.run_training_epoch(policy, optimizer, prob_list, state_list, action_list, reward_list,
                                         discount=discount, epsilon=epsilon, beta=beta, batch_size=batch_size)
-    # TODO: need to decay parameters
+
+    # the clipping parameter reduces as time goes on
+    epsilon*=.999
+    
+    # the regulation term also reduces
+    # this reduces exploration in later runs
+    beta*=.995
 
 env.close()
 
