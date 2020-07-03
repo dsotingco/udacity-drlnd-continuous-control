@@ -16,19 +16,18 @@ class ReacherPolicy(nn.Module):
         self.action_size = action_size
         self.fc1 = nn.Linear(state_size, hidden1_size)
         self.fc2 = nn.Linear(hidden1_size, hidden2_size)
-        self.fc3 = nn.Linear(hidden2_size, 2*action_size)
-        # Output of neural network: [mu1; mu2; mu3; mu4; sigma1; sigma2; sigma3; sigma4]
-        self.means = torch.tensor([0.0] * self.action_size)
-        self.std_deviations = torch.tensor([init_std_deviation] * self.action_size)
+        self.fc3 = nn.Linear(hidden2_size, action_size)
+        # Output of neural network: [mu1; mu2; mu3; mu4]
+        self.means = torch.tensor([0.0] * self.action_size)    # just a place to cache neural network outputs
+        self.std_deviations = nn.Parameter(torch.ones(4))
 
     def calculate_distribution_params(self, state):
-        """ Calculate means and standard deviations to be used. """
+        """ Calculate mean values to be used, using the neural network. """
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         out = torch.tanh(x)
         self.means = out.flatten()[0:4]
-        self.std_deviations = out.flatten()[4:]
 
     def forward(self, state, use_sampling=True):
         """ Run the neural network and sample the distribution for actions. """
@@ -39,9 +38,12 @@ class ReacherPolicy(nn.Module):
         self.calculate_distribution_params(state)
         m = torch.distributions.normal.Normal(self.means, self.std_deviations)
         if use_sampling:
-            actions = m.sample()
+            raw_nn_actions = m.sample()
         else:
-            actions = self.means
+            raw_nn_actions = self.means
+        # Since distribution sampling may yield values beyond [-1, 1],
+        # saturate the action values.
+        actions = torch.clamp(raw_nn_actions, -1.0, 1.0)
         log_probs = m.log_prob(actions)
         return (actions, log_probs)
 
@@ -51,10 +53,7 @@ class ReacherPolicy(nn.Module):
             policy changes during training. """
         # NOTE: These are technically not log probabilities, but rather
         # logs of the probability density functions. 
-        # state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-        # actions = torch.from_numpy(actions).float().unsqueeze(0).to(device)
         self.eval()
-        # self.double()    # need this to avoid PyTorch errors for some reason
         self.calculate_distribution_params(state)
         m = torch.distributions.normal.Normal(self.means, self.std_deviations)
         log_probs = m.log_prob(actions)
