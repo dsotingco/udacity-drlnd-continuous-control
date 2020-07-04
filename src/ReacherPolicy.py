@@ -9,23 +9,25 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class ReacherPolicy(nn.Module):
     """ Policy model. """
 
-    def __init__(self, state_size=33, hidden1_size=128, hidden2_size=64, action_size=4, 
+    def __init__(self, state_size=33, hidden1_size=128, hidden2_size=64, hidden3_size=32, action_size=4, 
                  init_std_deviation=1.0):
         super(ReacherPolicy, self).__init__()
         self.state_size = state_size
         self.action_size = action_size
         self.fc1 = nn.Linear(state_size, hidden1_size)
         self.fc2 = nn.Linear(hidden1_size, hidden2_size)
-        self.fc3 = nn.Linear(hidden2_size, action_size)
+        self.fc3 = nn.Linear(hidden2_size, hidden3_size)
+        self.fc4 = nn.Linear(hidden3_size, action_size)
         # Output of neural network: [mu1; mu2; mu3; mu4]
         self.means = torch.tensor([0.0] * self.action_size)    # just a place to cache neural network outputs
-        self.std_deviations = nn.Parameter(torch.ones(4))
+        self.std_deviations = nn.Parameter(init_std_deviation * torch.ones(4))
 
     def calculate_distribution_params(self, state):
         """ Calculate mean values to be used, using the neural network. """
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
         out = torch.tanh(x)
         self.means = out.flatten()[0:4]
 
@@ -34,7 +36,7 @@ class ReacherPolicy(nn.Module):
         actions = torch.tensor([0] * self.action_size)
         log_probs = torch.tensor([0] * self.action_size)
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-        self.eval()
+        self.train()
         self.calculate_distribution_params(state)
         m = torch.distributions.normal.Normal(self.means, self.std_deviations)
         if use_sampling:
