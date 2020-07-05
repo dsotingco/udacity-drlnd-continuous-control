@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 def collect_trajectories(env, policy):
+    """ TODO: document the outputs """
     # initialize return variables
     prob_list = []
     state_list = []
@@ -77,10 +78,10 @@ def process_rewards(reward_list, discount=0.995):
     future_rewards = np.fliplr( np.fliplr(discounted_rewards).cumsum(axis=1) )
 
     # normalize the future discounted rewards
-    mean = np.mean(future_rewards, axis=1)
-    std = np.std(future_rewards, axis=1) + 1.0e-10
-    mean_matrix = np.tile(mean[np.newaxis].T, (1,num_timesteps))
-    std_matrix  = np.tile(std[np.newaxis].T, (1,num_timesteps))
+    mean = np.mean(future_rewards, axis=0)
+    std = np.std(future_rewards, axis=0) + 1.0e-10
+    mean_matrix = np.tile(mean[np.newaxis], (num_agents,1))
+    std_matrix  = np.tile(std[np.newaxis], (num_agents,1))
     normalized_rewards = (future_rewards - mean_matrix) / std_matrix
     stacked_normalized_rewards = np.reshape(normalized_rewards, -1)
     return stacked_normalized_rewards
