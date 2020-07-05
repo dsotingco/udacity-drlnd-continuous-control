@@ -83,7 +83,7 @@ def process_rewards(reward_list, discount=0.995):
     mean_matrix = np.tile(mean[np.newaxis], (num_agents,1))
     std_matrix  = np.tile(std[np.newaxis], (num_agents,1))
     normalized_rewards = (future_rewards - mean_matrix) / std_matrix
-    stacked_normalized_rewards = np.reshape(normalized_rewards, -1)
+    stacked_normalized_rewards = np.reshape(normalized_rewards.T, -1)
     return stacked_normalized_rewards
 
 def calculate_new_log_probs(policy, state_batch, action_batch):
