@@ -25,19 +25,12 @@ def collect_trajectories(env, policy):
     states = env_info.vector_observations.astype(np.float32)
     scores = np.zeros(num_agents, dtype=np.float32)
 
-    # initialize actions matrix and probability matrix
-    actions = np.zeros((num_agents, action_size), dtype=np.float32)
-    probs = np.zeros((num_agents, action_size), dtype=np.float32)
-
     # run the agents in the environment
     while True:
-        # actions = np.random.randn(num_agents, action_size)
-        # actions = np.clip(actions, -1, 1)
-        for agent_index in range(num_agents):
-            agent_states = states[agent_index,:]
-            (policy_actions, policy_log_probs) = policy.forward(agent_states)
-            actions[agent_index,:] = policy_actions.detach().numpy()
-            probs[agent_index,:] = policy_log_probs.detach().numpy()
+        (policy_actions, policy_log_probs) = policy.forward(states)
+        actions = policy_actions.detach().numpy()
+        assert isinstance(actions, np.ndarray)
+        probs = policy_log_probs.detach().numpy()
         env_info = env.step(actions)[brain_name]
         next_states = env_info.vector_observations.astype(np.float32)
         rewards = np.array(env_info.rewards)
