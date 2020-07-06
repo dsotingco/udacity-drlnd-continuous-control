@@ -27,19 +27,16 @@ def collect_trajectories(env, policy):
 
     # run the agents in the environment
     while True:
-        (policy_actions, policy_log_probs) = policy.forward(states)
-        actions = policy_actions.detach().numpy()
-        assert isinstance(actions, np.ndarray)
-        probs = policy_log_probs.detach().numpy()
-        env_info = env.step(actions)[brain_name]
+        (actions, probs) = policy.forward(states)
+        env_info = env.step(actions.detach().numpy())[brain_name]
         next_states = env_info.vector_observations.astype(np.float32)
         rewards = np.array(env_info.rewards)
         dones = env_info.local_done
         scores += env_info.rewards
         # Append results to output lists.
-        assert isinstance(probs, np.ndarray)
+        assert isinstance(probs, torch.Tensor)
         assert isinstance(states, np.ndarray)
-        assert isinstance(actions, np.ndarray)
+        assert isinstance(actions, torch.Tensor)
         assert isinstance(rewards, np.ndarray)
         prob_list.append(probs)
         state_list.append(states)
@@ -58,38 +55,26 @@ def collect_trajectories(env, policy):
 def process_rewards(reward_list, discount=0.995):
     """ Process the rewards for one run of collect_trajectories().  
     Outputs normalized, discounted, future rewards as a matrix of 
-    num_agents rows, and num_timesteps columns."""
+    num_timesteps rows, and num_agents columns."""
     # calculate discounted rewards
-    num_timesteps = len(reward_list)
-    num_agents = len(reward_list[0])
-    reward_matrix = np.asarray(reward_list).T    # rows are agents; columns are time
-    discount_array = discount**np.arange(len(reward_list))
-    discount_matrix = np.tile(discount_array, (num_agents, 1))
-    discounted_rewards = reward_matrix * discount_matrix
+    discount_array = discount ** np.arange(len(reward_list))
+    discounted_rewards = np.asarray(reward_list) * discount_array[:,np.newaxis]
 
     # calculate future discounted rewards
-    future_rewards = np.fliplr( np.fliplr(discounted_rewards).cumsum(axis=1) )
+    future_rewards = discounted_rewards[::-1].cumsum(axis=0)[::-1]
 
     # normalize the future discounted rewards
-    mean = np.mean(future_rewards, axis=0)
-    std = np.std(future_rewards, axis=0) + 1.0e-10
-    mean_matrix = np.tile(mean[np.newaxis], (num_agents,1))
-    std_matrix  = np.tile(std[np.newaxis], (num_agents,1))
-    normalized_rewards = (future_rewards - mean_matrix) / std_matrix
-    stacked_normalized_rewards = np.reshape(normalized_rewards.T, -1)
-    return stacked_normalized_rewards
+    mean = np.mean(future_rewards, axis=1)
+    std = np.std(future_rewards, axis=1) + 1.0e-10
+    normalized_rewards = (future_rewards - mean[:,np.newaxis]) / std[:,np.newaxis]
+    return normalized_rewards
 
 def calculate_new_log_probs(policy, state_batch, action_batch):
     """ Calculate new log probabilities of the actions, 
         given the states.  To be used during training as the
         policy is changed by the optimizer. 
         Inputs are state and action batches as PyTorch tensors."""
-    new_prob_batch = torch.zeros(action_batch.shape)
-    row_index = 0
-    for s,a in zip(state_batch, action_batch):
-        new_prob_batch[row_index,:] = policy.calculate_log_probs_from_actions(s,a)
-        row_index = row_index + 1
-    # new_prob_list = [policy.calculate_log_probs_from_actions(s, a) for s, a in zip(state_list, action_list)]
+    new_prob_batch = policy.calculate_log_probs_from_actions(state_batch, action_batch)
     return new_prob_batch
 
 def calculate_probability_ratio(old_prob_batch, new_prob_batch):
@@ -101,7 +86,9 @@ def calculate_probability_ratio(old_prob_batch, new_prob_batch):
     # multiply by the scalar rewards.  Done here by just summing the probabilities.
     # Note that they weren't really probabilities to begin with, but rather the
     # log of the normal distributions' PDF values.
-    prob_ratio = torch.sum(torch.exp(new_prob_batch), axis=1) / torch.sum(torch.exp(old_prob_batch), axis=1)
+    old_log_probs_summed = torch.sum(old_prob_batch, dim=2)
+    new_log_probs_summed = torch.sum(new_prob_batch, dim=2)
+    prob_ratio = torch.exp(new_log_probs_summed - old_log_probs_summed)
     return prob_ratio
 
 def clipped_surrogate(old_prob_batch, new_prob_batch, reward_batch,
@@ -118,8 +105,8 @@ def clipped_surrogate(old_prob_batch, new_prob_batch, reward_batch,
     return ppo_loss
 
 def calculate_entropy(old_prob_batch, new_prob_batch):
-    old_prob_batch = torch.sum(torch.exp(old_prob_batch), axis=1)
-    new_prob_batch = torch.sum(torch.exp(new_prob_batch), axis=1)
+    old_prob_batch = torch.sum(torch.exp(old_prob_batch))
+    new_prob_batch = torch.sum(torch.exp(new_prob_batch))
     entropy = -torch.exp(new_prob_batch) * (old_prob_batch + 1e-10) + \
               (1.0 - torch.exp(new_prob_batch)) * (1 - old_prob_batch + 1e-10)
     return entropy
@@ -135,21 +122,29 @@ def run_training_epoch(policy, optimizer, old_prob_list, state_list, action_list
     num_samples = len(state_list)
     num_batches = int(np.ceil(num_samples/batch_size))
     sample_indices = np.arange(num_samples)
+    np.random.shuffle(sample_indices)
 
-    old_prob_tensor = torch.tensor(np.concatenate(old_prob_list, axis=0))    # N x 4
-    state_tensor = torch.tensor(np.concatenate(state_list, axis=0))          # N x 33
-    action_tensor = torch.tensor(np.concatenate(action_list, axis=0))        # N x 4
-    reward_tensor = torch.tensor(process_rewards(reward_list))               # N (1D)
+    old_prob_tensor = torch.stack(old_prob_list).detach()                           # 1001 x 20 x  4 (T x num_agents x action_size)
+    state_tensor = torch.tensor(state_list, dtype=torch.float).detach()             # 1001 x 20 x 33 (T x num_agents x state_size)
+    action_tensor = torch.stack(action_list).detach()                               # 1001 x 20 x  4 (T x num_agents x action_size)
+    reward_tensor = torch.tensor(process_rewards(reward_list), dtype=torch.float)   # 1001 x 20      (T x num_agents)
 
     for batch_index in range(num_batches):
         sample_start_index = batch_index * batch_size
         sample_end_index = sample_start_index + batch_size
         batch_sample_indices = sample_indices[sample_start_index : sample_end_index]
-        old_prob_batch = old_prob_tensor[batch_sample_indices,:]
-        state_batch = state_tensor[batch_sample_indices,:]
-        action_batch = action_tensor[batch_sample_indices,:]
+
+        old_prob_batch = old_prob_tensor[batch_sample_indices]
+        state_batch = state_tensor[batch_sample_indices]
+        action_batch = action_tensor[batch_sample_indices]
         reward_batch = reward_tensor[batch_sample_indices]
         new_prob_batch = calculate_new_log_probs(policy, state_batch, action_batch)
+
+        print("old_prob_batch.shape: ", old_prob_batch.shape)
+        print("state_batch.shape: ", state_batch.shape)
+        print("action_batch.shape: ", action_batch.shape)
+        print("reward_batch.shape: ", reward_batch.shape)
+        print("new_prob_batch.shape: ", new_prob_batch.shape)
     
         ppo_loss = clipped_surrogate(old_prob_batch, new_prob_batch, reward_batch,
                                      discount=discount, epsilon=epsilon, beta=beta)

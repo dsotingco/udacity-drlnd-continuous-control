@@ -52,8 +52,10 @@ class ReacherPolicy(nn.Module):
             policy changes during training. """
         # NOTE: These are technically not log probabilities, but rather
         # logs of the probability density functions. 
+        print("actions.shape: ", actions.shape)
         self.train()
         means = self.calculate_distribution_means(state)
         m = torch.distributions.normal.Normal(means, self.std_deviations)
+        print("std deviations: ", self.std_deviations)
         log_probs = m.log_prob(actions)
         return log_probs
