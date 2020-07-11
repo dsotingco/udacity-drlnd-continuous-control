@@ -13,12 +13,12 @@ from collections import deque
 
 # Hyperparameters
 learning_rate = 2e-4
-num_episodes = 3
+num_episodes = 50
 discount = 0.995
 epsilon = 0.1
 beta = 0.01
 batch_size = 128
-num_epochs_per_episode = 5    # could probably go up to 15 with batch_size = 64
+num_epochs_per_episode = 10
 
 # Environment setup
 env = UnityEnvironment(file_name="Reacher.exe")
@@ -43,7 +43,7 @@ for episode in range(num_episodes):
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(episode, np.mean(scores_window)))
     if np.mean(scores_window) >= score_threshold:
         print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(episode-100, np.mean(scores_window)))
-        torch.save(policy.state_dict(), 'checkpoint.pth')
+        torch.save(policy.state_dict(), 'reacher_weights.pth')
         break
 
     # Run training epochs
