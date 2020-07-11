@@ -13,12 +13,13 @@ from collections import deque
 
 # Hyperparameters
 learning_rate = 2e-4
-num_episodes = 50
+num_episodes = 100
 discount = 0.995
-epsilon = 0.1
+epsilon = 0.15
 beta = 0.01
 batch_size = 128
 num_epochs_per_episode = 10
+score_threshold = 35
 
 # Environment setup
 env = UnityEnvironment(file_name="Reacher.exe")
@@ -29,7 +30,6 @@ optimizer = optim.Adam(policy.parameters(), lr=learning_rate)
 # Initialize scores, etc.
 episode_scores = []
 scores_window = deque(maxlen=100)
-score_threshold = 35
 
 # Run episodes and train agent.
 for episode in range(num_episodes):
