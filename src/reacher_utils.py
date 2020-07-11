@@ -64,6 +64,7 @@ def collect_trajectories(env, policy):
         if np.any(dones):
             break
 
+    assert(scores.shape == (20,))
     average_agent_score = np.mean(scores)
     print('Total score (averaged over agents) this episode: {}'.format(average_agent_score))
 
