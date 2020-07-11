@@ -123,8 +123,8 @@ def clipped_surrogate(old_prob_batch, new_prob_batch, reward_batch,
     return ppo_loss
 
 def calculate_entropy(old_prob_batch, new_prob_batch):
-    entropy = -torch.exp(new_prob_batch) * (old_prob_batch + 1e-10) + \
-              (1.0 - torch.exp(new_prob_batch)) * (1.0 - old_prob_batch + 1e-10)
+    entropy = -(torch.exp(new_prob_batch) * (old_prob_batch + 1e-10) + \
+              (1.0 - torch.exp(new_prob_batch)) * (1.0 - old_prob_batch + 1e-10))
     assert(torch.isnan(entropy).any() == False)
     return entropy
 
@@ -167,7 +167,6 @@ def run_training_epoch(policy, optimizer, old_prob_list, state_list, action_list
         state_batch = state_tensor[batch_sample_indices]
         action_batch = action_tensor[batch_sample_indices]
         reward_batch = reward_tensor[batch_sample_indices]
-        # TODO: may need some transposing here
         new_prob_batch_raw = calculate_new_log_probs(policy, state_batch, action_batch)
         new_prob_batch_shape = new_prob_batch_raw.shape    # should be B x 20 x 4
         assert(new_prob_batch_shape[1] == 20)

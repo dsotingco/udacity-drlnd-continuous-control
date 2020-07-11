@@ -57,6 +57,5 @@ class ReacherPolicy(nn.Module):
         self.train()
         means = self.calculate_distribution_means(state)
         m = torch.distributions.normal.Normal(means, self.std_deviations)
-        # print("std deviations: ", self.std_deviations)
         log_probs = m.log_prob(actions)
         return log_probs

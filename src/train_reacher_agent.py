@@ -15,7 +15,7 @@ from collections import deque
 learning_rate = 2e-4
 num_episodes = 100
 discount = 0.995
-epsilon = 0.15
+epsilon = 0.10
 beta = 0.01
 batch_size = 128
 num_epochs_per_episode = 10
