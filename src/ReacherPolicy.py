@@ -24,7 +24,7 @@ class ReacherPolicy(nn.Module):
     def forward(self, state, actions=None, use_sampling=True):
         """ Run the neural network and sample the distribution for actions. """
         assert(torch.isnan(state).any() == False)
-        self.train()
+        # self.train()
 
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
@@ -39,7 +39,8 @@ class ReacherPolicy(nn.Module):
                 raw_nn_actions = means
             # Since distribution sampling may yield values beyond [-1, 1],
             # saturate the action values.
-            actions = torch.clamp(raw_nn_actions, -1.0, 1.0)
+            # actions = torch.clamp(raw_nn_actions, -1.0, 1.0)
+            actions = raw_nn_actions
         assert(torch.isnan(actions).any() == False)
 
         # NOTE: These are technically not log probabilities, but rather
