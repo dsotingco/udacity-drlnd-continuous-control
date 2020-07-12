@@ -26,8 +26,7 @@ class ReacherPolicy(nn.Module):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = F.relu(self.fc4(x))
-        means = torch.tanh(x)
+        means = torch.tanh(self.fc4(x))
         return means
 
     def forward(self, state, use_sampling=True):
