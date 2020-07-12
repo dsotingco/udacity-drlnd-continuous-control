@@ -21,10 +21,13 @@ class ReacherPolicy(nn.Module):
         # Output of neural network: [mu1; mu2; mu3; mu4]
         self.std_deviations = nn.Parameter(init_std_deviation * torch.ones(1, self.action_size))
 
-    def forward(self, state, actions=None, use_sampling=True):
+    def forward(self, state, actions=None, training_mode=True):
         """ Run the neural network and sample the distribution for actions. """
         assert(torch.isnan(state).any() == False)
-        # self.train()
+        if training_mode:
+            self.train()
+        else:
+            self.eval()
 
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
@@ -33,7 +36,7 @@ class ReacherPolicy(nn.Module):
         m = torch.distributions.normal.Normal(means, self.std_deviations)
 
         if actions is None:
-            if use_sampling:
+            if training_mode:
                 raw_nn_actions = m.sample()
             else:
                 raw_nn_actions = means

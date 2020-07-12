@@ -13,7 +13,7 @@ from collections import deque
 
 # Hyperparameters
 learning_rate = 2e-4
-num_episodes = 100
+num_episodes = 1500
 discount = 0.995
 epsilon = 0.10
 beta = 0.01
