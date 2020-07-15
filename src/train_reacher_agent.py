@@ -13,13 +13,13 @@ from collections import deque
 
 # Hyperparameters
 learning_rate = 2e-4
-num_episodes = 1500
+num_episodes = 650
 discount = 0.995
 epsilon = 0.15
-beta = 0.01
+beta = 0.02
 batch_size = 128
 num_epochs_per_episode = 10
-score_save_threshold = 24
+score_save_threshold = 20
 score_solved_threshold = 35
 
 # Environment setup
