@@ -20,10 +20,10 @@ num_agents = 20
 policy = ReacherPolicy.ReacherPolicy() 
 policy.load_state_dict(torch.load('reacher_weights_solved_510.pth'))
 
-scores = np.zeros(num_agents, dtype=np.float32)
 scores_window = deque(maxlen=100)
 
 for i_episode in range(0, n_episodes):
+    scores = np.zeros(num_agents, dtype=np.float32)
     env_info = env.reset(train_mode=False)[brain_name]
     states = env_info.vector_observations.astype(np.float32)
 
